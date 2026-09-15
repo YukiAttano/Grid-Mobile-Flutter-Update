@@ -3018,10 +3018,6 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
 
     await showAccountDeletionSupportDialog(context, details: details);
-    // await showDialog<void>(
-    //   context: context,
-    //   builder: (_) => _AccountDeletionSupportDialog(details: details),
-    // );
   }
 
   // Modern Delete Account Dialog Methods
