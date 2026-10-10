@@ -3,7 +3,6 @@ import 'package:grid_frontend/services/room_service.dart';
 import 'package:provider/provider.dart';
 import 'package:matrix/matrix.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../dialogs/account_deletion_support_dialog.dart';
 import '../../services/sync_manager.dart';
 import '/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -3016,8 +3015,10 @@ class _SettingsPageState extends State<SettingsPage> {
         'Requested: ${DateTime.now().toUtc().toIso8601String()}';
 
     if (!mounted) return;
-
-    await showAccountDeletionSupportDialog(context, details: details);
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _AccountDeletionSupportDialog(details: details),
+    );
   }
 
   // Modern Delete Account Dialog Methods
@@ -3574,4 +3575,169 @@ class _DangerBullet {
   const _DangerBullet(this.icon, this.text);
   final IconData icon;
   final String text;
+}
+
+/// Dialog shown when a default-homeserver (passkey) account asks to be deleted.
+///
+/// There is no in-app deletion endpoint for these accounts, so the useful thing
+/// the app can do is hand the user everything the team needs and a way to reach
+/// them. Copying is the primary action; opening Discord is secondary.
+class _AccountDeletionSupportDialog extends StatefulWidget {
+  final String details;
+
+  const _AccountDeletionSupportDialog({required this.details});
+
+  @override
+  State<_AccountDeletionSupportDialog> createState() => _AccountDeletionSupportDialogState();
+}
+
+class _AccountDeletionSupportDialogState extends State<_AccountDeletionSupportDialog> {
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.details));
+    if (!mounted) return;
+    setState(() => _copied = true);
+  }
+
+  Future<void> _openDiscord() async {
+    final uri = Uri.parse(gridDiscordInvite);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.9,
+        ),
+        decoration: BoxDecoration(
+          color: context.gridColors.surface,
+          borderRadius: BorderRadius.circular(GridTokens.rXl),
+          border: Border.all(color: context.gridColors.hairline),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: context.gridColors.dangerSoft,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(GridTokens.rXl),
+                  topRight: Radius.circular(GridTokens.rXl),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: context.gridColors.danger.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(GridTokens.rMd),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.support_agent,
+                      color: context.gridColors.danger,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'We\'ll delete it for you',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: context.gridColors.text,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Passkey accounts can\'t be deleted in the app yet. Copy '
+                    'the details below and send them to us on Discord — we\'ll '
+                    'remove your account and confirm when it\'s done.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.45,
+                      color: context.gridColors.text2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: context.gridColors.surface2,
+                      borderRadius: BorderRadius.circular(GridTokens.rMd),
+                      border: Border.all(color: context.gridColors.hairline),
+                    ),
+                    child: SelectableText(
+                      widget.details,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        fontFamily: 'monospace',
+                        color: context.gridColors.text2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                children: [
+                  GridButton(
+                    label: _copied ? 'Copied' : 'Copy account details',
+                    onPressed: _copy,
+                    style: GridButtonStyle.primary,
+                    icon: _copied ? Icons.check : Icons.copy,
+                  ),
+                  const SizedBox(height: 10),
+                  GridButton(
+                    label: 'Open Discord',
+                    onPressed: _openDiscord,
+                    style: GridButtonStyle.secondary,
+                    icon: Icons.open_in_new,
+                  ),
+                  const SizedBox(height: 6),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      foregroundColor: context.gridColors.text2,
+                    ),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
