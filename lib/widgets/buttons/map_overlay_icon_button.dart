@@ -25,6 +25,7 @@ class MapOverlayIconButton extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return FloatingActionButton.small(
+      heroTag: null,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       tooltip: tooltip,
       shape: RoundedRectangleBorder(

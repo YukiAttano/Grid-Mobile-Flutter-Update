@@ -136,14 +136,14 @@ class PasskeyWarningDialog extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: AddPasskeyNowButton(
-                      onPressed: () => _onAddPasskeyNow,
+                      onPressed: () => _onAddPasskeyNow(context),
                     ),
                   ),
                   Gap.normal,
                   SizedBox(
                     width: double.infinity,
                     child: RemindMeLaterButton(
-                      onPressed: () => _onRemindMeLater,
+                      onPressed: () => _onRemindMeLater(context),
                     ),
                   ),
                 ],
