@@ -1,74 +1,68 @@
-import 'package:flutter/material.dart';
-import 'package:grid_frontend/services/room_service.dart';
-import 'package:provider/provider.dart';
-import 'package:matrix/matrix.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../dialogs/sign_out_dialog.dart';
-import '../../services/sync_manager.dart';
-import '/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:grid_frontend/services/location_manager.dart';
-import 'package:grid_frontend/services/in_app_notifier.dart';
-import 'package:grid_frontend/services/sharing_state_notifier.dart';
-import 'package:grid_frontend/services/theme_controller.dart';
-import 'package:grid_frontend/services/location/home_geofence_service.dart';
-import 'package:grid_frontend/services/location/location_dispatch.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/services.dart';
-import 'package:grid_frontend/utilities/error_report.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart' as http_parser;
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:grid_frontend/utilities/utils.dart' as utils;
-import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
+
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:grid_frontend/services/secure_storage_provider.dart';
-import 'package:grid_frontend/widgets/user_avatar.dart';
-import 'package:grid_frontend/widgets/user_avatar_bloc.dart';
-import 'package:grid_frontend/services/avatar_announcement_service.dart';
-import 'package:grid_frontend/services/avatar_cache_service.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:grid_frontend/blocs/avatar/avatar_bloc.dart';
 import 'package:grid_frontend/blocs/avatar/avatar_event.dart';
 import 'package:grid_frontend/blocs/contacts/contacts_bloc.dart';
-import 'package:grid_frontend/blocs/contacts/contacts_event.dart';
 import 'package:grid_frontend/blocs/groups/groups_bloc.dart';
-import 'package:grid_frontend/blocs/groups/groups_event.dart';
 import 'package:grid_frontend/blocs/invitations/invitations_bloc.dart';
 import 'package:grid_frontend/blocs/invitations/invitations_event.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:grid_frontend/screens/settings/subscription_screen.dart';
-import 'package:grid_frontend/screens/settings/passkey_management_screen.dart';
-import 'package:grid_frontend/screens/settings/password_setup_screen.dart';
-import 'package:grid_frontend/services/password_auth_service.dart';
+import 'package:grid_frontend/screens/settings/appearance_settings_screen.dart';
 import 'package:grid_frontend/screens/settings/developer_tools_screen.dart';
 import 'package:grid_frontend/screens/settings/encryption_keys_screen.dart';
 import 'package:grid_frontend/screens/settings/home_location_picker_screen.dart';
-import 'package:grid_frontend/services/home_location_signals.dart';
+import 'package:grid_frontend/screens/settings/passkey_management_screen.dart';
+import 'package:grid_frontend/screens/settings/password_setup_screen.dart';
 import 'package:grid_frontend/screens/settings/profile_photo_screen.dart';
-import 'package:grid_frontend/screens/settings/appearance_settings_screen.dart';
 import 'package:grid_frontend/screens/settings/sharing_mode_screen.dart';
-import 'dart:io' show Platform;
+import 'package:grid_frontend/screens/settings/subscription_screen.dart';
+import 'package:grid_frontend/services/avatar_announcement_service.dart';
+import 'package:grid_frontend/services/home_location_signals.dart';
+import 'package:grid_frontend/services/in_app_notifier.dart';
+import 'package:grid_frontend/services/location/home_geofence_service.dart';
+import 'package:grid_frontend/services/location/location_dispatch.dart';
+import 'package:grid_frontend/services/location_manager.dart';
+import 'package:grid_frontend/services/password_auth_service.dart';
+import 'package:grid_frontend/services/room_service.dart';
+import 'package:grid_frontend/services/secure_storage_provider.dart';
+import 'package:grid_frontend/services/sharing_state_notifier.dart';
+import 'package:grid_frontend/services/theme_controller.dart';
+import 'package:grid_frontend/utilities/error_report.dart';
+import 'package:grid_frontend/utilities/utils.dart' as utils;
+import 'package:grid_frontend/widgets/user_avatar.dart';
+import 'package:grid_frontend/widgets/user_avatar_bloc.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' as http_parser;
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:matrix/matrix.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../styles/tokens.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '/services/database_service.dart';
+import '../../dialogs/sign_out_dialog.dart';
+import '../../services/sync_manager.dart';
 import '../../styles/grid_colors.dart';
+import '../../styles/tokens.dart';
 import '../../widgets/grid/grid_avatar.dart';
 import '../../widgets/grid/grid_button.dart';
 import '../../widgets/grid/grid_mono.dart';
 import '../../widgets/grid/grid_segmented.dart';
 
-
-
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
@@ -110,8 +104,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _onFooterTapped() {
     final now = DateTime.now();
-    if (_lastDevTapAt != null &&
-        now.difference(_lastDevTapAt!) <= const Duration(seconds: 3)) {
+    if (_lastDevTapAt != null && now.difference(_lastDevTapAt!) <= const Duration(seconds: 3)) {
       _devTapCount += 1;
     } else {
       _devTapCount = 1;
@@ -128,7 +121,6 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
   }
-
 
   @override
   void initState() {
@@ -180,7 +172,7 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _userID = client.userID?.replaceAll('@', '');
         _localpart = _userID?.split(':')[0].replaceAll('@', '') ?? 'Unknown User';
-        _username =  isCustomServer ? _userID : _userID?.split(':')[0].replaceAll('@', '') ?? 'Unknown User';
+        _username = isCustomServer ? _userID : _userID?.split(':')[0].replaceAll('@', '') ?? 'Unknown User';
         _displayName = prefs.getString('displayName') ?? _username;
       });
     } catch (e) {
@@ -204,8 +196,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _sharingMode =
-          SharingModePref.fromPrefValue(prefs.getString('sharing_mode'));
+      _sharingMode = SharingModePref.fromPrefValue(prefs.getString('sharing_mode'));
     });
   }
 
@@ -213,8 +204,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('home_location');
     setState(() {
-      _autoPauseAtHome =
-          prefs.getBool('auto_pause_at_home_enabled') ?? false;
+      _autoPauseAtHome = prefs.getBool('auto_pause_at_home_enabled') ?? false;
       _homeLocationSet = saved != null && saved.trim().isNotEmpty;
     });
   }
@@ -367,8 +357,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final initialRadius = prefs.getDouble('home_radius') ?? 25;
     final picked = await Navigator.of(context).push<HomeLocationResult>(
       MaterialPageRoute(
-        builder: (_) =>
-            HomeLocationPickerScreen(initialRadiusMeters: initialRadius),
+        builder: (_) => HomeLocationPickerScreen(initialRadiusMeters: initialRadius),
       ),
     );
     if (picked == null || !mounted) return;
@@ -484,15 +473,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     GridButton(
                       label: 'Pick on map',
                       icon: Icons.map_outlined,
-                      onPressed: () =>
-                          Navigator.of(sheetContext).pop(true),
+                      onPressed: () => Navigator.of(sheetContext).pop(true),
                     ),
                     const SizedBox(height: 8),
                     GridButton(
                       label: 'Cancel',
                       style: GridButtonStyle.ghost,
-                      onPressed: () =>
-                          Navigator.of(sheetContext).pop(false),
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
                     ),
                   ],
                 ),
@@ -526,8 +513,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _getDeviceAndIdentityKey() async {
     final client = Provider.of<Client>(context, listen: false);
-    final deviceId = client.deviceID;  // Get device ID
-    final identityKey = client.identityKey;  // Get identity key
+    final deviceId = client.deviceID; // Get device ID
+    final identityKey = client.identityKey; // Get identity key
 
     setState(() {
       this.deviceID = deviceId ?? 'Device ID not available';
@@ -589,9 +576,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          title.toLowerCase().contains('device')
-                              ? Icons.device_hub
-                              : Icons.key,
+                          title.toLowerCase().contains('device') ? Icons.device_hub : Icons.key,
                           color: colorScheme.primary,
                           size: 24,
                         ),
@@ -844,7 +829,6 @@ class _SettingsPageState extends State<SettingsPage> {
     if (confirmed) {
       // TODO(Yuki): Implement declarative handling of sign out to prevent service failing on logout or user escaping
       try {
-
         print("[Logout] Starting logout process...");
 
         // 1. Stop all active services immediately
@@ -912,7 +896,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-
   Future<void> _editDisplayName() async {
     final TextEditingController controller = TextEditingController(text: _displayName ?? _username);
     final theme = Theme.of(context);
@@ -976,8 +959,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             height: 40,
                             decoration: BoxDecoration(
                               color: context.gridColors.mintSoft,
-                              borderRadius:
-                                  BorderRadius.circular(GridTokens.rMd),
+                              borderRadius: BorderRadius.circular(GridTokens.rMd),
                             ),
                             alignment: Alignment.center,
                             child: Icon(
@@ -1049,40 +1031,28 @@ class _SettingsPageState extends State<SettingsPage> {
                                   color: context.gridColors.text3,
                                   size: 20,
                                 ),
-                                counterText:
-                                    '${controller.text.trim().length}/14',
+                                counterText: '${controller.text.trim().length}/14',
                                 counterStyle: GoogleFonts.getFont(
                                   'Geist',
                                   fontSize: 11,
-                                  color: hasError
-                                      ? context.gridColors.danger
-                                      : context.gridColors.text3,
+                                  color: hasError ? context.gridColors.danger : context.gridColors.text3,
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(GridTokens.rMd),
+                                  borderRadius: BorderRadius.circular(GridTokens.rMd),
                                   borderSide: BorderSide(
-                                    color: hasError
-                                        ? context.gridColors.danger
-                                        : context.gridColors.hairline,
+                                    color: hasError ? context.gridColors.danger : context.gridColors.hairline,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(GridTokens.rMd),
+                                  borderRadius: BorderRadius.circular(GridTokens.rMd),
                                   borderSide: BorderSide(
-                                    color: hasError
-                                        ? context.gridColors.danger
-                                        : context.gridColors.hairline,
+                                    color: hasError ? context.gridColors.danger : context.gridColors.hairline,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(GridTokens.rMd),
+                                  borderRadius: BorderRadius.circular(GridTokens.rMd),
                                   borderSide: BorderSide(
-                                    color: hasError
-                                        ? context.gridColors.danger
-                                        : context.gridColors.mint,
+                                    color: hasError ? context.gridColors.danger : context.gridColors.mint,
                                     width: 1.5,
                                   ),
                                 ),
@@ -1097,17 +1067,13 @@ class _SettingsPageState extends State<SettingsPage> {
                                   if (hasError) {
                                     final trimmed = value.trim();
                                     if (trimmed.isEmpty) {
-                                      errorText =
-                                          'Display name cannot be empty';
+                                      errorText = 'Display name cannot be empty';
                                     } else if (trimmed.length < 3) {
-                                      errorText =
-                                          'Must be at least 3 characters';
+                                      errorText = 'Must be at least 3 characters';
                                     } else if (trimmed.length > 14) {
-                                      errorText =
-                                          'Must be 14 characters or less';
+                                      errorText = 'Must be 14 characters or less';
                                     } else {
-                                      errorText =
-                                          'Contains invalid characters';
+                                      errorText = 'Contains invalid characters';
                                     }
                                   } else {
                                     errorText = null;
@@ -1131,10 +1097,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: context.gridColors.surface2,
-                                borderRadius:
-                                    BorderRadius.circular(GridTokens.rMd),
-                                border:
-                                    Border.all(color: context.gridColors.hairline),
+                                borderRadius: BorderRadius.circular(GridTokens.rMd),
+                                border: Border.all(color: context.gridColors.hairline),
                               ),
                               child: Row(
                                 children: [
@@ -1185,8 +1149,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   ? null
                                   : () {
                                       if (isValidName(controller.text)) {
-                                        Navigator.pop(
-                                            context, controller.text.trim());
+                                        Navigator.pop(context, controller.text.trim());
                                       }
                                     },
                             ),
@@ -1246,222 +1209,223 @@ class _SettingsPageState extends State<SettingsPage> {
 
     // When called from the new ProfilePhotoScreen we already know which
     // source the user picked, so skip the legacy in-method chooser.
-    final ImageSource? source = presetSource ?? await showDialog<ImageSource>(
-      context: context,
-      builder: (BuildContext context) {
-        final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
+    final ImageSource? source = presetSource ??
+        await showDialog<ImageSource>(
+          context: context,
+          builder: (BuildContext context) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
 
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            constraints: BoxConstraints(maxWidth: 360),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withOpacity(0.15),
-                  blurRadius: 20,
-                  offset: Offset(0, 10),
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 360),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Icon
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.account_circle,
-                      color: colorScheme.primary,
-                      size: 32,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-
-                  // Title
-                  Text(
-                    'Update Profile Photo',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  SizedBox(height: 24),
-
-                  // Options
-                  InkWell(
-                    onTap: () => Navigator.pop(context, ImageSource.camera),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              color: colorScheme.primary,
-                              size: 24,
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Take Photo',
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Use your camera',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: colorScheme.onSurfaceVariant.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  InkWell(
-                    onTap: () => Navigator.pop(context, ImageSource.gallery),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.photo_library,
-                              color: colorScheme.primary,
-                              size: 24,
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Choose from Gallery',
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Select existing photo',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: colorScheme.onSurfaceVariant.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 24),
-
-                  // End-to-end encryption notice
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.lock_rounded,
-                          size: 14,
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.account_circle,
                           color: colorScheme.primary,
+                          size: 32,
                         ),
-                        SizedBox(width: 6),
-                        Text(
-                          'End-to-end encrypted',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w500,
+                      ),
+                      SizedBox(height: 16),
+
+                      // Title
+                      Text(
+                        'Update Profile Photo',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+
+                      // Options
+                      InkWell(
+                        onTap: () => Navigator.pop(context, ImageSource.camera),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  color: colorScheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Take Photo',
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Use your camera',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16),
+                      ),
+                      SizedBox(height: 12),
+                      InkWell(
+                        onTap: () => Navigator.pop(context, ImageSource.gallery),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.photo_library,
+                                  color: colorScheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Choose from Gallery',
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Select existing photo',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 24),
 
-                  // Cancel button
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      minimumSize: Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      // End-to-end encryption notice
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.lock_rounded,
+                              size: 14,
+                              color: colorScheme.primary,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'End-to-end encrypted',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
+                      SizedBox(height: 16),
+
+                      // Cancel button
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          minimumSize: Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
-      },
-    );
 
     if (source == null) return;
 
@@ -1657,7 +1621,8 @@ class _SettingsPageState extends State<SettingsPage> {
         final filename = responseData['filename'];
 
         // Construct CDN URL using the filename
-        final cdnBaseUrl = dotenv.env['PROFILE_PIC_CDN_URL'] ?? 'https://profile-store.mygrid.app';;
+        final cdnBaseUrl = dotenv.env['PROFILE_PIC_CDN_URL'] ?? 'https://profile-store.mygrid.app';
+        ;
         final cdnUrl = '$cdnBaseUrl/$filename';
 
         // Store encryption metadata in secure storage
@@ -2121,9 +2086,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-
   Future<void> _deleteAccount() async {
-
     // first check which server in use
     final client = Provider.of<Client>(context, listen: false);
     final sharedPreferences = await SharedPreferences.getInstance();
@@ -2138,7 +2101,6 @@ class _SettingsPageState extends State<SettingsPage> {
       await _showDeletionSupportDialog();
       return;
     }
-
 
     // currently uses API directly versus SDK
     // due to issues with SDK
@@ -2169,18 +2131,12 @@ class _SettingsPageState extends State<SettingsPage> {
       "user": client.userID,
       "password": password,
     };
-    final body = jsonEncode({
-      "auth": authData,
-      "erase": true
-    });
+    final body = jsonEncode({"auth": authData, "erase": true});
 
     try {
       final response = await http.post(
         url,
-        headers: {
-          "Authorization": "Bearer ${client.accessToken}",
-          "Content-Type": "application/json"
-        },
+        headers: {"Authorization": "Bearer ${client.accessToken}", "Content-Type": "application/json"},
         body: body,
       );
 
@@ -2195,7 +2151,6 @@ class _SettingsPageState extends State<SettingsPage> {
         syncManager.stopSync();
         databaseService.deleteAndReinitialize();
         await sharedPreferences.clear();
-
 
         try {
           if (client.isLogged()) {
@@ -2224,8 +2179,6 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
   }
-
-
 
   Future<void> _launchURL(String url) async {
     if (await canLaunch(url)) {
@@ -2276,7 +2229,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -2364,8 +2316,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _buildToggleOption(
                   icon: Icons.home_outlined,
                   title: 'Pause sharing at home',
-                  subtitle:
-                      'Pauses automatically when you cross the geofence',
+                  subtitle: 'Pauses automatically when you cross the geofence',
                   value: _autoPauseAtHome,
                   onChanged: _onAutoPauseAtHomeToggled,
                   colorScheme: colorScheme,
@@ -2405,8 +2356,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const PasskeyManagementScreen(),
+                          builder: (context) => const PasskeyManagementScreen(),
                         ),
                       );
                     },
@@ -2607,10 +2557,8 @@ class _SettingsPageState extends State<SettingsPage> {
         builder: (_) => ProfilePhotoScreen(
           userId: client.userID ?? '',
           displayName: _displayName ?? _username ?? 'Grid',
-          onTakePhoto: () =>
-              _pickAndUploadAvatar(presetSource: ImageSource.camera),
-          onChooseFromGallery: () =>
-              _pickAndUploadAvatar(presetSource: ImageSource.gallery),
+          onTakePhoto: () => _pickAndUploadAvatar(presetSource: ImageSource.camera),
+          onChooseFromGallery: () => _pickAndUploadAvatar(presetSource: ImageSource.gallery),
           onRemovePhoto: _removeAvatar,
         ),
       ),
@@ -2676,9 +2624,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       name: _displayName ?? _username ?? 'Grid',
                       size: 56,
                       ring: true,
-                      selfStatus: _incognitoMode
-                          ? SelfSharingStatus.paused
-                          : SelfSharingStatus.sharing,
+                      selfStatus: _incognitoMode ? SelfSharingStatus.paused : SelfSharingStatus.sharing,
                     ),
                     // Live user-uploaded avatar, clipped into the inner disc.
                     Positioned.fill(
@@ -2862,13 +2808,11 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: enabled ? onChanged : null,
               thumbColor: WidgetStateProperty.all(Colors.white),
               trackColor: WidgetStateProperty.resolveWith(
-                (states) => states.contains(WidgetState.selected)
-                    ? context.gridColors.mint
-                    : context.gridColors.surface3,
+                (states) =>
+                    states.contains(WidgetState.selected) ? context.gridColors.mint : context.gridColors.surface3,
               ),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              trackOutlineColor:
-                  WidgetStateProperty.all(Colors.transparent),
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
             ),
           ],
         ),
@@ -2884,9 +2828,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required ColorScheme colorScheme,
     bool mono = false,
   }) {
-    final displayValue = value.length > 36
-        ? '${value.substring(0, 36)}…'
-        : value;
+    final displayValue = value.length > 36 ? '${value.substring(0, 36)}…' : value;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -2991,9 +2933,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       'Geist',
                       color: titleColor,
                       fontSize: 15,
-                      fontWeight: isHighRisk
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+                      fontWeight: isHighRisk ? FontWeight.w600 : FontWeight.w500,
                       letterSpacing: -0.01,
                     ),
                   ),
@@ -3014,9 +2954,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: isDestructive
-                      ? context.gridColors.danger.withOpacity(0.6)
-                      : context.gridColors.text3,
+                  color: isDestructive ? context.gridColors.danger.withOpacity(0.6) : context.gridColors.text3,
                 ),
               ],
             ),
@@ -3084,13 +3022,9 @@ class _SettingsPageState extends State<SettingsPage> {
   // Modern Delete Account Dialog Methods
   Widget _buildDeleteConfirmationDialog({bool isCustomServer = false}) {
     final bullets = <_DangerBullet>[
-      const _DangerBullet(Icons.delete_forever,
-          'Your account will be permanently deleted'),
-      const _DangerBullet(Icons.group_remove,
-          'You will be removed from all groups and contacts'),
-      if (isCustomServer)
-        const _DangerBullet(
-            Icons.storage, 'All your data will be permanently erased'),
+      const _DangerBullet(Icons.delete_forever, 'Your account will be permanently deleted'),
+      const _DangerBullet(Icons.group_remove, 'You will be removed from all groups and contacts'),
+      if (isCustomServer) const _DangerBullet(Icons.storage, 'All your data will be permanently erased'),
     ];
 
     return Dialog(
@@ -3195,8 +3129,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: context.gridColors.surface2,
-                        borderRadius:
-                            BorderRadius.circular(GridTokens.rMd),
+                        borderRadius: BorderRadius.circular(GridTokens.rMd),
                         border: Border.all(color: context.gridColors.hairline),
                       ),
                       child: Column(
@@ -3264,7 +3197,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-
 
   Widget _buildPasswordConfirmationDialog(TextEditingController passwordController) {
     return Dialog(
@@ -3356,8 +3288,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: context.gridColors.surface2,
-                      borderRadius:
-                          BorderRadius.circular(GridTokens.rMd),
+                      borderRadius: BorderRadius.circular(GridTokens.rMd),
                       border: Border.all(color: context.gridColors.hairline),
                     ),
                     child: Row(
@@ -3409,20 +3340,15 @@ class _SettingsPageState extends State<SettingsPage> {
                         size: 20,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(GridTokens.rMd),
-                        borderSide:
-                            BorderSide(color: context.gridColors.hairline),
+                        borderRadius: BorderRadius.circular(GridTokens.rMd),
+                        borderSide: BorderSide(color: context.gridColors.hairline),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(GridTokens.rMd),
-                        borderSide:
-                            BorderSide(color: context.gridColors.hairline),
+                        borderRadius: BorderRadius.circular(GridTokens.rMd),
+                        borderSide: BorderSide(color: context.gridColors.hairline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(GridTokens.rMd),
+                        borderRadius: BorderRadius.circular(GridTokens.rMd),
                         borderSide: BorderSide(
                           color: context.gridColors.mint,
                           width: 1.5,
@@ -3455,8 +3381,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: GridButton(
                       label: 'Delete',
                       style: GridButtonStyle.danger,
-                      onPressed: () => Navigator.pop(
-                          context, passwordController.text),
+                      onPressed: () => Navigator.pop(context, passwordController.text),
                     ),
                   ),
                 ],
@@ -3475,7 +3400,6 @@ class _DangerBullet {
   final String text;
 }
 
-
 /// Dialog shown when a default-homeserver (passkey) account asks to be deleted.
 ///
 /// There is no in-app deletion endpoint for these accounts, so the useful thing
@@ -3487,12 +3411,10 @@ class _AccountDeletionSupportDialog extends StatefulWidget {
   const _AccountDeletionSupportDialog({required this.details});
 
   @override
-  State<_AccountDeletionSupportDialog> createState() =>
-      _AccountDeletionSupportDialogState();
+  State<_AccountDeletionSupportDialog> createState() => _AccountDeletionSupportDialogState();
 }
 
-class _AccountDeletionSupportDialogState
-    extends State<_AccountDeletionSupportDialog> {
+class _AccountDeletionSupportDialogState extends State<_AccountDeletionSupportDialog> {
   bool _copied = false;
 
   Future<void> _copy() async {
@@ -3593,8 +3515,7 @@ class _AccountDeletionSupportDialogState
                     decoration: BoxDecoration(
                       color: context.gridColors.surface2,
                       borderRadius: BorderRadius.circular(GridTokens.rMd),
-                      border:
-                          Border.all(color: context.gridColors.hairline),
+                      border: Border.all(color: context.gridColors.hairline),
                     ),
                     child: SelectableText(
                       widget.details,
