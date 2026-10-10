@@ -306,7 +306,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> with TickerProv
     final error = usernameValidationError(_usernameController.text);
 
     if (error != null) {
-      setState(() => _usernameState == UsernameState.error(error));
+      setState(() => _usernameState = UsernameState.error(error));
       return;
     }
 
@@ -400,7 +400,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> with TickerProv
 
     if (_usePassword) {
       return PasswordSignupView(
-        usernameController: _loginUsernameController,
+        usernameController: _usernameController,
         passwordController: _passwordController,
         confirmPasswordController: _confirmPasswordController,
         authError: _authError,
@@ -409,8 +409,10 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> with TickerProv
           if (mounted) setState(() => _acknowledgedNoRecovery = value);
         },
         isPasswordLoading: _isPasswordLoading,
+        turnstileGranted: _turnstileToken != null,
         buildTurnstileWidget: () {
-          if (_turnstileToken == null) return _buildTurnstile();
+          if (_turnstileToken == null)return _buildTurnstile();
+          return null;
         },
         onShowUsername: _showUsernameStep,
         onSignupWithPassword: _signupWithPassword,

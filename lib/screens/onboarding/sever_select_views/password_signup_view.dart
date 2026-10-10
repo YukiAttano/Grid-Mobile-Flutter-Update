@@ -19,6 +19,7 @@ class PasswordSignupView extends StatefulWidget {
 
   final bool hasNoRecoveryAcknowledged;
   final bool isPasswordLoading;
+  final bool turnstileGranted;
 
   final Widget? Function() buildTurnstileWidget;
 
@@ -34,6 +35,7 @@ class PasswordSignupView extends StatefulWidget {
     required this.authError,
     required this.hasNoRecoveryAcknowledged,
     required this.isPasswordLoading,
+    required this.turnstileGranted,
     required this.buildTurnstileWidget,
     required this.onSignupWithPassword,
     required this.onAcknowledgeChanged,
@@ -48,17 +50,72 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  String? _policyError;
+  String? _matchError;
+  bool get _isPasswordValid => _policyError == null && _matchError == null;
+
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+
+    _setupControllerListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant PasswordSignupView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.usernameController != widget.usernameController ||
+        oldWidget.passwordController != widget.passwordController ||
+        oldWidget.confirmPasswordController != widget.confirmPasswordController) {
+      _removeListener(oldWidget.usernameController, oldWidget.passwordController, oldWidget.confirmPasswordController);
+      _setupControllerListener();
+    }
+  }
+
+  void _removeListener(
+    TextEditingController? usernameController,
+    TextEditingController? passwordController,
+    TextEditingController? confirmPasswordController,
+  ) {
+    usernameController?.removeListener(_onInputChanged);
+    passwordController?.removeListener(_onInputChanged);
+    confirmPasswordController?.removeListener(_onInputChanged);
+  }
+
+  void _setupControllerListener() {
+    widget.usernameController.addListener(_onInputChanged);
+    widget.passwordController.addListener(_onInputChanged);
+    widget.confirmPasswordController.addListener(_onInputChanged);
+    _verifyInput();
+  }
+
+  void _onInputChanged() => _verifyInput(rebuild: true);
+
+  void _verifyInput({bool rebuild = false}) {
     final username = widget.usernameController.text.trim();
     final password = widget.passwordController.text;
     final confirmation = widget.confirmPasswordController.text;
 
-    final policyError = password.isEmpty ? null : passwordValidationError(password, username: username);
-    final matchError = confirmation.isEmpty ? null : passwordConfirmationError(password, confirmation);
+    final policyError = passwordValidationError(password, username: username);
+    final matchError = passwordConfirmationError(password, confirmation);
 
-    bool isValid = policyError == null && matchError == null;
+    void update() {
+      _policyError = policyError;
+      _matchError = matchError;
+    }
 
+    if (mounted && (policyError != _policyError || matchError != _matchError)) {
+      if (rebuild) {
+        setState(update);
+      } else {
+        update();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     Widget? turnstile = widget.buildTurnstileWidget();
     if (turnstile != null) {
       turnstile = Padding(
@@ -68,16 +125,15 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
     }
 
     bool canCreateAccount =
-        (isValid && widget.hasNoRecoveryAcknowledged && turnstile != null && !widget.isPasswordLoading);
+        (_isPasswordValid && widget.hasNoRecoveryAcknowledged && widget.turnstileGranted && !widget.isPasswordLoading);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StepHeader(
-          illustration: Container(
+          illustration: SizedBox(
             width: 96,
             height: 96,
-            alignment: Alignment.center,
             child: Icon(
               Icons.password_rounded,
               size: 40,
@@ -85,7 +141,12 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
             ),
           ),
           title: Text('Create a Password'),
-          subtitle: Text('Signing up as @$username'),
+          subtitle: ValueListenableBuilder(
+            valueListenable: widget.usernameController,
+            builder: (context, value, child) {
+              return Text('Signing up as @${value.text.trim()}');
+            },
+          ),
         ),
 
         const SizedBox(height: 32),
@@ -101,11 +162,11 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
         ),
 
         Visibility(
-          visible: policyError != null,
+          visible: _policyError != null,
           child: Padding(
             padding: EdgeInsets.only(top: Gap.small.height ?? 0),
             child: InlineMessage(
-              child: Text(policyError ?? ""),
+              child: Text(_policyError ?? ""),
             ),
           ),
         ),
@@ -123,11 +184,11 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
         ),
 
         Visibility(
-          visible: matchError != null,
+          visible: _matchError != null,
           child: Padding(
             padding: EdgeInsets.only(top: Gap.small.height ?? 0),
             child: InlineMessage(
-              child: Text(matchError ?? ""),
+              child: Text(_matchError ?? ""),
             ),
           ),
         ),
@@ -167,7 +228,7 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
         ServerSelectScreen.buildModernButton(
           text: 'Create Account',
           onPressed: canCreateAccount ? widget.onSignupWithPassword : null,
-          isPrimary: true,
+          isPrimary: canCreateAccount,
           isLoading: widget.isPasswordLoading,
           icon: Icons.person_add_alt_1_rounded,
         ),
@@ -191,5 +252,11 @@ class _PasswordSignupViewState extends State<PasswordSignupView> {
         Gap.bigger,
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _removeListener(widget.usernameController, widget.passwordController, widget.confirmPasswordController);
+    super.dispose();
   }
 }
